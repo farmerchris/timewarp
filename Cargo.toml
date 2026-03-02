@@ -1,0 +1,22 @@
+[package]
+name = "timewarp"
+version = "0.1.0"
+edition = "2024"
+default-run = "timewarp"
+
+[lib]
+name = "timewarp_shim"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "timewarp"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+chrono = { version = "0.4", default-features = true }
+clap = { version = "4.5", features = ["derive"] }
+libc = "0.2"
+once_cell = "1.19"
+which = "7"
