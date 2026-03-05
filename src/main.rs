@@ -61,6 +61,9 @@ struct Cli {
     )]
     probe: bool,
 
+    #[arg(long, help = "Enable shim hook diagnostics (prints which interposed APIs are hit)")]
+    debug_hooks: bool,
+
     #[arg(required = true)]
     command: Vec<String>,
 }
@@ -82,10 +85,12 @@ fn run() -> Result<ExitCode> {
         bail!("--speed must be >= 0");
     }
     if let Some(hs) = cli.hyperspeed
-        && hs < 0.0 {
-            bail!("--hyperspeed must be >= 0");
-        }
+        && hs < 0.0
+    {
+        bail!("--hyperspeed must be >= 0");
+    }
     let effective_speed = cli.hyperspeed.unwrap_or(cli.speed);
+    let effective_warp_monotonic = cli.warp_monotonic || cli.hyperspeed.is_some();
 
     let initial_offset_ns = initial_offset_ns(&cli)?;
     let state_path = make_state_path()?;
@@ -94,17 +99,20 @@ fn run() -> Result<ExitCode> {
     let shim_path = find_shim_path()?;
 
     if cli.probe {
-        run_probe(&cli.command[0], &shim_path, cli.warp_monotonic)?;
+        run_probe(&cli.command[0], &shim_path, effective_warp_monotonic)?;
     }
 
     let mut cmd = Command::new(&cli.command[0]);
     cmd.args(&cli.command[1..]);
     cmd.env("TW_STATE_PATH", &state_path);
-    if cli.warp_monotonic {
+    if effective_warp_monotonic {
         cmd.env("TW_WARP_MONOTONIC", "1");
     }
     if cli.hyperspeed.is_some() && (effective_speed - 1.0).abs() > f64::EPSILON {
         cmd.env("TW_SCALE_SLEEP", "1");
+    }
+    if cli.debug_hooks {
+        cmd.env("TW_DEBUG_HOOKS", "1");
     }
     inject_preload_env(&mut cmd, &shim_path)?;
 
@@ -422,6 +430,9 @@ fn run_active_probe(shim_path: &Path, warp_monotonic: bool) -> Result<()> {
     warped_cmd.env("TW_STATE_PATH", &state_path);
     if warp_monotonic {
         warped_cmd.env("TW_WARP_MONOTONIC", "1");
+    }
+    if std::env::var("TW_DEBUG_HOOKS").is_ok() {
+        warped_cmd.env("TW_DEBUG_HOOKS", "1");
     }
     inject_preload_env(&mut warped_cmd, shim_path)?;
     let warped = warped_cmd
