@@ -81,11 +81,10 @@ fn run() -> Result<ExitCode> {
     if cli.speed < 0.0 {
         bail!("--speed must be >= 0");
     }
-    if let Some(hs) = cli.hyperspeed {
-        if hs < 0.0 {
+    if let Some(hs) = cli.hyperspeed
+        && hs < 0.0 {
             bail!("--hyperspeed must be >= 0");
         }
-    }
     let effective_speed = cli.hyperspeed.unwrap_or(cli.speed);
 
     let initial_offset_ns = initial_offset_ns(&cli)?;

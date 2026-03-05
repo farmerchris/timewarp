@@ -58,6 +58,16 @@ fn timewarp_runs_now_bin() {
 
 #[test]
 fn offset_changes_reported_time() {
+    let mut probe_cmd = Command::new(debug_bin("timewarp"));
+    probe_cmd.args(["--probe"]);
+    probe_cmd.arg(debug_bin("now"));
+    let probe_out = probe_cmd.output().expect("probe should run");
+    assert!(
+        probe_out.status.success(),
+        "probe failed: {}",
+        String::from_utf8_lossy(&probe_out.stderr)
+    );
+
     let base_cmd = Command::new(debug_bin("now"));
     let base_stdout = run_cmd(base_cmd);
     let base_time = parse_epoch(&base_stdout, "time");
